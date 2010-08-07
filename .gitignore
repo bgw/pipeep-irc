@@ -1,0 +1,9 @@
+**/*.class
+**/*.jar
+**/.DS_Store?
+**/ehthumbs.db
+**/Icon?
+**/Thumbs.db
+bin
+javadocs
+docs
