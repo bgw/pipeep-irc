@@ -32,6 +32,14 @@ public class ChannelHandler {
    */
   public void onMessage(String sender, String login, String message) {}
   
+  /**
+   * Override this method to handle chat-room messages, private messages must be
+   * handled by a SimplePircBot instance. By default, calls onMessage.
+   */
+  public void onAction(String sender, String login, String message) {
+    onMessage(sender, login, message);
+  }
+  
   public void onJoin(String nick, String login) {}
   
   public void onKick(String kickerNick, String kickerLogin,

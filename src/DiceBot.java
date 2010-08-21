@@ -1,14 +1,10 @@
 import org.jibble.pircbot.PircBot;
 import org.pipeep.pircbot.SimplePircBot;
 import org.pipeep.pircbot.ChannelHandlerFactory;
-import java.util.Random;
 
 public class DiceBot extends SimplePircBot<DiceBotChannelHandler> {
   
-  public Random rand;
-  private long randSeed;
   private int port;
-  public int rollCount;
   
   public static void main(String[] args) {
     if(args.length < 2 || args.length > 3) {
@@ -32,9 +28,6 @@ public class DiceBot extends SimplePircBot<DiceBotChannelHandler> {
   
   public DiceBot(String hostname, int port, String nick, boolean debugMode) {
     super(hostname, port, nick, debugMode);
-    rollCount = 0;
-    randSeed = System.currentTimeMillis();
-    rand = new Random(randSeed);
   }
   
   @Override
@@ -45,11 +38,15 @@ public class DiceBot extends SimplePircBot<DiceBotChannelHandler> {
   //TODO: Only supports simple rolls right now, add complex roll support
   
   @Override
-  protected void onPrivateMessage(String sender, String login, String hostname, String message) {
-    if(message.equals("seed")) {
-      sendMessage(sender, Long.toString(randSeed));
-    } else if(message.equals("rollcount")) {
-      sendMessage(sender, Integer.toString(rollCount));
+  protected void onPrivateMessage(String sender, String login, String hostname,
+                                  String message) {
+    DiceBotChannelHandler ch = getChannelHandler(
+      message.substring(0, message.indexOf(' ')), "private message"
+    );
+    if(smartContains(message, "seed")) {
+      sendMessage(sender, Long.toString(ch.randSeed));
+    } else if(smartContains(message, "rollcount")) {
+      sendMessage(sender, Integer.toString(ch.rollCount));
     }
   }
   

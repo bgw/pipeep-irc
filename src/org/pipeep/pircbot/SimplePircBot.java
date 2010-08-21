@@ -9,6 +9,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Properties;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.Random;
@@ -93,7 +94,7 @@ public abstract class SimplePircBot<E extends ChannelHandler> extends PircBot {
         log(ex);
         long seconds = i*2; if(seconds > 120) { seconds = 120; }
         log("Connection to " + hostname +
-            " failed. Attempting to reconnect in " + seconds +
+            " failed. Reattempting to connect in " + seconds +
             " seconds...");
         try { Thread.sleep(seconds*1000); } catch(Exception sleepex) {}
       }
@@ -136,12 +137,13 @@ public abstract class SimplePircBot<E extends ChannelHandler> extends PircBot {
   
   public void simpleJoinChannel(String channel) {
     synchronized(this) {
-      if(!joinedChannels.contains(channel)) {
+      String lowerCaseChannel = channel.toLowerCase();
+      if(!joinedChannels.contains(lowerCaseChannel)) {
         if(isConnected()) {
           joinChannel(channel);
-          joinedChannels.add(channel);
+          joinedChannels.add(lowerCaseChannel);
         } else {
-          channelsToJoin.add(channel);
+          channelsToJoin.add(lowerCaseChannel);
         }
       }
     }
@@ -165,7 +167,7 @@ public abstract class SimplePircBot<E extends ChannelHandler> extends PircBot {
   protected void onInvite(String targetNick, String sourceNick,
                           String sourceLogin, String sourceHostname,
                           String channel) {
-    joinChannel(channel);
+    simpleJoinChannel(channel);
   }
   
   @Override
@@ -185,13 +187,21 @@ public abstract class SimplePircBot<E extends ChannelHandler> extends PircBot {
     System.out.println("Disconnected; Attempting to reconnect in 5 seconds...");
     try { Thread.sleep(5000); } catch(Exception ex) {}
     simpleReconnect();
+    channelsToJoin.addAll(joinedChannels);
+    joinedChannels.clear();
+    for(E ch : channelHandlers.values()) {
+      ch.onDispose();
+    }
+    channelHandlers.clear();
   }
   
-  private ChannelHandler getChannelHandler(String channel, String reason) {
-    E ch = channelHandlers.get(channel);
-    if(ch == null || !joinedChannels.contains(channel)) {
+  protected E getChannelHandler(String channel, String reason) {
+    String lowerCaseChannel = channel.toLowerCase();
+    E ch = channelHandlers.get(lowerCaseChannel);
+    if(ch == null || !joinedChannels.contains(lowerCaseChannel)) {
       throw new RuntimeException(
-        "Unexpected " + reason + " from an unjoined channel: " + channel
+        "Unexpected " + reason + " from an unjoined channel: " +
+        lowerCaseChannel
       );
     }
     return ch;
@@ -207,17 +217,50 @@ public abstract class SimplePircBot<E extends ChannelHandler> extends PircBot {
     getChannelHandler(channel, "message").onMessage(sender, login, message);
   }
   
+  /**
+   * Finds the ChannelHandler for the channel that the action came from and
+   * calls it's onMessage function.
+   */
+  @Override
+  protected void onAction(String sender, String login, String hostname,
+                          String target, String action) {
+    // TODO: when we get a UserHandler, handle when target is not a channel, but
+    // a user
+    getChannelHandler(target, "action").onAction(sender, login, action);
+  }
+  
   
   // Here are a few IRC utility functions
   // Auto-Boxing FTW
   private static final HashSet<Character> PUNCTUATION =
-    toHashSet(" \\|/,~`\'.;:<>\"?!@#$%^&*(){}[]-+=_".toCharArray());
+    toHashSet(" \\|/,~`\'.;:<>\"?!@#$%^&*(){}[]-+=_");
+  // these must be escaped in regex
+  private static HashSet<Character> REGEX_METACHARS =
+    toHashSet("^[.${*(\\+)|?<>");
+  public static final String REGEX_IS_PUNCTUATION =
+    toRegexString(PUNCTUATION);
   
-  private static HashSet toHashSet(char[] ca) {
+  private static HashSet<Character> toHashSet(String str) {
+    return toHashSet(str.toCharArray());
+  }
+  
+  private static HashSet<Character> toHashSet(char[] ca) {
     HashSet<Character> hs = new HashSet<Character>();
     for(char c: ca) {
       hs.add(c);
     } return hs;
+  }
+  
+  private static final String toRegexString(Set<Character> cs) {
+    StringBuilder sb = new StringBuilder("(");
+    for(char c: cs) {
+      // metacharacters must me escaped
+      if(REGEX_METACHARS.contains(c)) { sb.append('\\'); }
+      sb.append(c); sb.append('|');
+    }
+    if(cs.size() > 0) { sb.deleteCharAt(sb.length()-1); }
+    sb.append(')');
+    return sb.toString();
   }
   
   public static boolean smartContains(String in, String searchTerm) {
