@@ -24,14 +24,15 @@ import java.io.FileNotFoundException;
 
 public abstract class SimplePircBot<E extends ChannelHandler> extends PircBot {
   
-  ChannelHandlerFactory<E> channelHandlerFactory =
+  protected ChannelHandlerFactory<E> channelHandlerFactory =
     getNewChannelHandlerFactory();
   protected abstract ChannelHandlerFactory<E> getNewChannelHandlerFactory();
   //TODO: make channelHandlers a WeakHashMap
   private HashMap<String, E> channelHandlers = new HashMap<String, E>();
   private HashSet<String> joinedChannels = new HashSet<String>();
   private HashSet<String> channelsToJoin = new HashSet<String>();
-  int port;
+  private String lastConnectedHostname;
+  private int lastConnectedPort;
   
   /**
    * A very simple main method and possible reference implimentation.
@@ -54,27 +55,18 @@ public abstract class SimplePircBot<E extends ChannelHandler> extends PircBot {
     pb.simpleJoinChannel("#" + args[2]);                              // channel
   }*/
   
-  public SimplePircBot(String hostName, String nick) {
-    this(hostName, nick, false);
+  public SimplePircBot(String nick) {
+    this(nick, false);
   }
   
-  public SimplePircBot(String hostName, String nick, boolean debugMode) {
-    this(hostName, 6667, nick, debugMode);
-  }
-  
-  public SimplePircBot(String hostName, int port, String nick) {
-    this(hostName, port, nick, false);
-  }
-  
-  public SimplePircBot(String hostname, int port, String nick,
-                       boolean debugMode) {
+  public SimplePircBot(String nick, boolean debugMode) {
     super(); setVerbose(debugMode);
     setName(nick);
-    this.port = port;
-    simpleConnect(hostname, port);
   }
   
-  String lastConnectedHostname; int lastConnectedPort;
+  public void simpleConnect(String hostname) {
+    simpleConnect(hostname, 6667);
+  }
   
   public void simpleConnect(String hostname, int port) {
     lastConnectedHostname = hostname; lastConnectedPort = port;

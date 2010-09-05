@@ -71,4 +71,12 @@ public class ChannelHandler {
   public void sendPrivateAction(String user, String action) {
     parent.sendAction(user, action);
   }
+  
+  public void kick(String nick, String reason) {
+    parent.kick(channel, nick, reason);
+  }
+  
+  public void kick(String nick) {
+    parent.kick(channel, nick);
+  }
 }

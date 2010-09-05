@@ -17,17 +17,20 @@ public class DiceBot extends SimplePircBot<DiceBotChannelHandler> {
     int slashIndex = args[0].indexOf('/');
     
     DiceBot db = new DiceBot(
-      slashIndex > -1 ? args[0].substring(0, slashIndex) : args[0],   // server
-      slashIndex > -1 ?                                               // port
-        Integer.parseInt(args[0].substring(slashIndex+1)) : 6667,     // port
       args.length > 2 ? args[2] : "bot"+((int)(Math.random()*10000)), // nick
       true                                                            // debug
+    );
+    
+    db.simpleConnect(
+      slashIndex > -1 ? args[0].substring(0, slashIndex) : args[0],   // server
+      slashIndex > -1 ?                                               // port
+        Integer.parseInt(args[0].substring(slashIndex+1)) : 6667
     );
     db.simpleJoinChannel("#" + args[1]);                              // channel
   }
   
-  public DiceBot(String hostname, int port, String nick, boolean debugMode) {
-    super(hostname, port, nick, debugMode);
+  public DiceBot(String nick, boolean debugMode) {
+    super(nick, debugMode);
   }
   
   @Override
